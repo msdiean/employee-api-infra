@@ -21,27 +21,28 @@ env:
   AWS_REGION: ap-south-1
   TF_VERSION: 1.12.2
   TF_WORKING_DIR: terraform/environments/dev
-  AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_ARN }}
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::755395261332:role/coz-infra
 
 jobs:
   terraform-plan:
+    name: Terraform Plan
+    runs-on: [self-hosted, terraform]
+
     permissions:
       id-token: write
       contents: read
-    name: Terraform Plan
-    runs-on: [self-hosted, terraform]
+
     timeout-minutes: 60
+
     defaults:
       run:
         shell: bash
         working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
-      # Checkout repository source
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Debug GitHub workflow context
       - name: Debug GitHub Context
         run: |
           echo "Repository: ${{ github.repository }}"
@@ -57,45 +58,29 @@ jobs:
             echo "ID Token Available: NO"
           fi
 
-      - name: Show OIDC Claims
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const core = require('@actions/core');
-            const token = await core.getIDToken('sts.amazonaws.com');
-            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-            console.log(JSON.stringify(payload, null, 2));
-
-      # Configure AWS credentials using GitHub OIDC
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Setup Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # Verify Terraform version
-      - name: Verify Terraform version
+      - name: Verify Terraform Version
         run: terraform version
 
-      # Check formatting
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
-      # Initialize Terraform
       - name: Terraform Init
         run: terraform init -input=false
 
-      # Validate Terraform configuration
       - name: Terraform Validate
         run: terraform validate
 
-      # Run Terraform security scan for common misconfigurations
       - name: Checkov Security Scan
         uses: bridgecrewio/checkov-action@v12
         with:
@@ -104,48 +89,45 @@ jobs:
           output_format: sarif
           output_file_path: checkov-results.sarif
 
-      # Create Terraform plan and save to tfplan
       - name: Terraform Plan
-        run: |
-          terraform plan -input=false -out=tfplan -no-color
-          echo "Terraform plan created successfully."
+        run: terraform plan -input=false -out=tfplan -no-color
 
-      # Show a compact human-readable summary from the plan
-      - name: Show Terraform Plan Summary
-        run: |
-          terraform show -no-color tfplan | tail -n 80
+      - name: Terraform Plan Summary
+        run: terraform show -no-color tfplan | tail -80
 
-      # Upload the plan artifact for later apply
-      - name: Upload tfplan artifact
+      - name: Upload tfplan
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: ${{ env.TF_WORKING_DIR }}/tfplan
-          if-no-files-found: error
 
   terraform-apply:
+    name: Terraform Apply
+
+    needs: terraform-plan
+
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+
+    runs-on: [self-hosted, terraform]
+
     permissions:
       id-token: write
       contents: read
-    name: Terraform Apply
-    needs: terraform-plan
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' && github.event_name == 'push'
-    runs-on: [self-hosted, terraform]
+
     timeout-minutes: 60
+
     environment:
       name: production
+
     defaults:
       run:
         shell: bash
         working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
-      # Checkout repository source
       - name: Checkout repository
         uses: actions/checkout@v4
-      
-      
-      # Debug GitHub workflow context
+
       - name: Debug GitHub Context
         run: |
           echo "Repository: ${{ github.repository }}"
@@ -161,35 +143,22 @@ jobs:
             echo "ID Token Available: NO"
           fi
 
-      - name: Show OIDC Claims
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const core = require('@actions/core');
-            const token = await core.getIDToken('sts.amazonaws.com');
-            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-            console.log(JSON.stringify(payload, null, 2));
-
-      # Configure AWS credentials via OIDC for apply stage
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Setup Terraform CLI
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      # Download the previously created Terraform plan
-      - name: Download tfplan artifact
+      - name: Download tfplan
         uses: actions/download-artifact@v4
         with:
           name: tfplan
           path: ${{ env.TF_WORKING_DIR }}
 
-      # Apply the saved plan
       - name: Terraform Apply
         run: terraform apply -input=false tfplan
