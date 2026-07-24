@@ -38,6 +38,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Debug GitHub workflow context
+      - name: Debug GitHub Context
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+
       # Configure AWS credentials using GitHub OIDC
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -112,6 +119,14 @@ jobs:
       # Checkout repository source
       - name: Checkout repository
         uses: actions/checkout@v4
+      
+      
+      # Debug GitHub workflow context
+      - name: Debug GitHub Context
+        run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
 
       # Configure AWS credentials via OIDC for apply stage
       - name: Configure AWS credentials via OIDC
