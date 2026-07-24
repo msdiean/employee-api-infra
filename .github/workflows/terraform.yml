@@ -48,6 +48,24 @@ jobs:
           echo "Ref: ${{ github.ref }}"
           echo "Event: ${{ github.event_name }}"
 
+      - name: Check OIDC Environment
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL"
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+            echo "ID Token Available: YES"
+          else
+            echo "ID Token Available: NO"
+          fi
+
+      - name: Show OIDC Claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const core = require('@actions/core');
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+            console.log(JSON.stringify(payload, null, 2));
+
       # Configure AWS credentials using GitHub OIDC
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -133,6 +151,24 @@ jobs:
           echo "Repository: ${{ github.repository }}"
           echo "Ref: ${{ github.ref }}"
           echo "Event: ${{ github.event_name }}"
+
+      - name: Check OIDC Environment
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=$ACTIONS_ID_TOKEN_REQUEST_URL"
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_TOKEN" ]; then
+            echo "ID Token Available: YES"
+          else
+            echo "ID Token Available: NO"
+          fi
+
+      - name: Show OIDC Claims
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const core = require('@actions/core');
+            const token = await core.getIDToken('sts.amazonaws.com');
+            const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+            console.log(JSON.stringify(payload, null, 2));
 
       # Configure AWS credentials via OIDC for apply stage
       - name: Configure AWS credentials via OIDC
