@@ -1,0 +1,6 @@
+# Ignore Terraform local state and generated files
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.log
+*.zip

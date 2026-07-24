@@ -1,0 +1,29 @@
+#!/bin/sh
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+
+if git rev-parse --verify HEAD >/dev/null 2>&1; then
+  against=HEAD
+else
+  against=$(git hash-object -t tree /dev/null)
+fi
+
+files=$(git diff --cached --name-only --diff-filter=ACMR $against --)
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+patterns='AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN (RSA|OPENSSH|EC|DSA|PGP) PRIVATE KEY-----|aws_access_key_id|aws_secret_access_key|password\s*=|secret\s*='
+
+matches=$(printf '%s
+' "$files" | xargs -r grep -nE "$patterns" -- 2>/dev/null || true)
+
+if [ -n "$matches" ]; then
+  echo "Possible secret detected in staged files. Commit blocked."
+  echo "$matches"
+  exit 1
+fi
+
+exit 0
