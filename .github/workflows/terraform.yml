@@ -21,7 +21,7 @@ env:
   AWS_REGION: ap-south-1
   TF_VERSION: 1.12.2
   TF_WORKING_DIR: terraform/environments/dev
-  AWS_ROLE_TO_ASSUME: ${{ vars.AWS_ROLE_ARN }}
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::755395261332:role/coz-infra
 
 jobs:
   terraform-plan:
