@@ -25,6 +25,9 @@ env:
 
 jobs:
   terraform-plan:
+    permissions:
+      id-token: write
+      contents: read
     name: Terraform Plan
     runs-on: [self-hosted, terraform]
     timeout-minutes: 60
@@ -103,6 +106,9 @@ jobs:
           if-no-files-found: error
 
   terraform-apply:
+    permissions:
+      id-token: write
+      contents: read
     name: Terraform Apply
     needs: terraform-plan
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' && github.event_name == 'push'
