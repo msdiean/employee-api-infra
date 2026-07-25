@@ -40,6 +40,10 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
+      - name: Fix workspace ownership
+        working-directory: ${{ github.workspace }}
+        run: sudo chown -R "$USER:$USER" . 2>/dev/null || true
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
