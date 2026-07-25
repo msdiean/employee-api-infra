@@ -76,6 +76,13 @@ jobs:
           output_file_path: checkov-results.sarif
           soft_fail: false
 
+      - name: Fix Checkov Output Permissions
+        if: always()
+        run: |
+          if [ -d "checkov-results.sarif" ]; then
+            sudo chmod -R 755 checkov-results.sarif || true
+          fi
+
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan -no-color
 
