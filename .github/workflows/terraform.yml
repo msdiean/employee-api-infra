@@ -1,49 +1,139 @@
-name: Deploy Infrastructure
+name: Terraform CI/CD
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-south-1
+  TF_VERSION: 1.12.2
+  TF_WORKING_DIR: terraform/environments/dev
+  AWS_ROLE_TO_ASSUME: arn:aws:iam::755395261332:role/github-actions-role
+
 jobs:
   terraform-plan:
-    runs-on: ubuntu-latest
+    name: Terraform Plan
+    runs-on: [self-hosted, terraform]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    timeout-minutes: 60
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Debug GitHub Context
-        run: |
-          echo "Repository: ${{ github.repository }}"
-          echo "Ref: ${{ github.ref }}"
-          echo "Ref Name: ${{ github.ref_name }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Actor: ${{ github.actor }}"
-
-      - name: Print OIDC Token Claims
-        shell: bash
-        run: |
-          RESPONSE=$(curl -s \
-            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-
-          TOKEN=$(echo "$RESPONSE" | jq -r '.value')
-
-          echo "===== OIDC TOKEN CLAIMS ====="
-          PAYLOAD=$(echo "$TOKEN" | cut -d "." -f2 | tr '_-' '/+' | base64 -d 2>/dev/null || true)
-          echo "$PAYLOAD"
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::755395261332:role/github-actions-role
-          aws-region: ap-south-1
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActionsSession
 
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Checkov Security Scan
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: ${{ env.TF_WORKING_DIR }}
+          framework: terraform
+          output_format: sarif
+          output_file_path: checkov-results.sarif
+
+      - name: Terraform Plan
+        run: terraform plan -input=false -out=tfplan -no-color
+
+      - name: Terraform Plan Summary
+        run: terraform show -no-color tfplan | tail -80
+
+      - name: Upload tfplan
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
+
+  terraform-apply:
+    name: Terraform Apply
+
+    needs: terraform-plan
+
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
+
+    runs-on: [self-hosted, terraform]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    timeout-minutes: 60
+
+    environment:
+      name: production
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession
+
+      - name: Verify AWS Authentication
+        run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Download tfplan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Terraform Apply
+        run: terraform apply -input=false tfplan
