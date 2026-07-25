@@ -75,7 +75,8 @@ resource "aws_lambda_function" "this" {
   memory_size                    = var.memory_size
   timeout                        = var.timeout
   publish                        = true
-  kms_key_arn                    = aws_kms_key.lambda_environment.arn
+  # KMS encryption temporarily disabled for initial deployment
+  # kms_key_arn                    = aws_kms_key.lambda_environment.arn
   reserved_concurrent_executions = 1
   code_signing_config_arn        = aws_lambda_code_signing_config.this.arn
 

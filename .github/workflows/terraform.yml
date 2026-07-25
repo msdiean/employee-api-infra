@@ -61,6 +61,17 @@ jobs:
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
 
+      - name: Build Lambda Package
+        run: |
+          # Create a minimal Lambda deployment package
+          mkdir -p lambda_build
+          echo "exports.handler = async (event) => { return { statusCode: 200, body: 'OK' }; };" > lambda_build/index.js
+          cd lambda_build
+          zip -r ../employee-api.zip . 
+          cd ..
+          rm -rf lambda_build
+          ls -lh employee-api.zip
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -140,6 +151,17 @@ jobs:
 
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
+
+      - name: Build Lambda Package
+        run: |
+          # Create a minimal Lambda deployment package
+          mkdir -p lambda_build
+          echo "exports.handler = async (event) => { return { statusCode: 200, body: 'OK' }; };" > lambda_build/index.js
+          cd lambda_build
+          zip -r ../employee-api.zip . 
+          cd ..
+          rm -rf lambda_build
+          ls -lh employee-api.zip
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

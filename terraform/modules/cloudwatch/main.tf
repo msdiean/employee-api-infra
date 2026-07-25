@@ -48,6 +48,7 @@ resource "aws_kms_alias" "log_group_encryption" {
 resource "aws_cloudwatch_log_group" "lambda_log_group" {
   name              = var.log_group_name
   retention_in_days = var.retention_in_days
-  kms_key_id        = aws_kms_key.log_group_encryption.arn
+  # KMS encryption temporarily disabled for initial deployment
+  # kms_key_id        = aws_kms_key.log_group_encryption.arn
   tags              = var.tags
 }

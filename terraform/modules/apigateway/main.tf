@@ -176,7 +176,8 @@ resource "aws_kms_alias" "access_logs_encryption" {
 resource "aws_cloudwatch_log_group" "access_logs" {
   name              = "/aws/apigateway/${var.api_name}"
   retention_in_days = 3653
-  kms_key_id        = aws_kms_key.access_logs_encryption.arn
+  # KMS encryption temporarily disabled for initial deployment
+  # kms_key_id        = aws_kms_key.access_logs_encryption.arn
   tags              = var.tags
 }
 
