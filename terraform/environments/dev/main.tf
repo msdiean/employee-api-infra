@@ -3,10 +3,10 @@ locals {
     Environment = var.environment
   })
 
-  lambda_name        = "employee-api-${var.environment}"
+  lambda_name         = "employee-api-${var.environment}"
   dynamodb_table_name = "employee-api-employees-${var.environment}"
-  log_group_name     = "/aws/lambda/${local.lambda_name}"
-  api_name           = "employee-api-${var.environment}"
+  log_group_name      = "/aws/lambda/${local.lambda_name}"
+  api_name            = "employee-api-${var.environment}"
 }
 
 module "dynamodb" {
@@ -32,14 +32,14 @@ module "iam" {
 }
 
 module "lambda" {
-  source               = "../../modules/lambda"
-  function_name        = local.lambda_name
-  runtime              = "nodejs22.x"
-  handler              = "src/index.handler"
-  memory_size          = 512
-  timeout              = 10
-  source_code_path     = var.lambda_package_path
-  role_arn             = module.iam.role_arn
+  source           = "../../modules/lambda"
+  function_name    = local.lambda_name
+  runtime          = "nodejs22.x"
+  handler          = "src/index.handler"
+  memory_size      = 512
+  timeout          = 10
+  source_code_path = var.lambda_package_path
+  role_arn         = module.iam.role_arn
   environment_variables = {
     TABLE_NAME = module.dynamodb.table_name
     AWS_REGION = var.aws_region
@@ -48,10 +48,10 @@ module "lambda" {
 }
 
 module "apigateway" {
-  source      = "../../modules/apigateway"
-  api_name    = local.api_name
-  lambda_arn  = module.lambda.lambda_function_arn
-  aws_region  = var.aws_region
-  stage_name  = var.environment
-  tags        = local.common_tags
+  source     = "../../modules/apigateway"
+  api_name   = local.api_name
+  lambda_arn = module.lambda.lambda_function_arn
+  aws_region = var.aws_region
+  stage_name = var.environment
+  tags       = local.common_tags
 }
