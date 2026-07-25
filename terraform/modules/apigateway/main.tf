@@ -184,7 +184,7 @@ resource "aws_cloudwatch_log_group" "access_logs" {
 resource "aws_cloudwatch_log_resource_policy" "wafv2_logging" {
   policy_name = "${replace(var.api_name, "-", "")}-wafv2-logging-policy"
 
-  policy_text = jsonencode({
+  policy_document = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
