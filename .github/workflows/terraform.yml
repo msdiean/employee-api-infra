@@ -40,6 +40,14 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
+      - name: Clean Previous Checkov Output
+        run: |
+          if [ -d "checkov-results.sarif" ]; then
+            sudo rm -rf checkov-results.sarif || true
+          fi
+        working-directory: ${{ github.workspace }}
+        continue-on-error: true
+
       - name: Checkout Repository
         uses: actions/checkout@v4
 
