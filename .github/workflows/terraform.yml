@@ -74,6 +74,7 @@ jobs:
           framework: terraform
           output_format: sarif
           output_file_path: checkov-results.sarif
+          soft_fail: false
 
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan -no-color
