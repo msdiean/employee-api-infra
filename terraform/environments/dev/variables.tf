@@ -13,7 +13,7 @@ variable "environment" {
 variable "lambda_package_path" {
   description = "Local path to the Lambda ZIP package."
   type        = string
-  default     = "../../employee-api.zip"
+  default     = "employee-api.zip"
 }
 
 variable "tags" {

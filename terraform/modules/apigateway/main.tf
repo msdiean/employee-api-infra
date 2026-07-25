@@ -178,7 +178,7 @@ resource "aws_cloudwatch_log_group" "access_logs" {
   retention_in_days = 3653
   # KMS encryption temporarily disabled for initial deployment
   # kms_key_id        = aws_kms_key.access_logs_encryption.arn
-  tags              = var.tags
+  tags = var.tags
 }
 
 resource "aws_cloudwatch_log_resource_policy" "wafv2_logging" {

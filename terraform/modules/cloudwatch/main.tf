@@ -50,5 +50,5 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   retention_in_days = var.retention_in_days
   # KMS encryption temporarily disabled for initial deployment
   # kms_key_id        = aws_kms_key.log_group_encryption.arn
-  tags              = var.tags
+  tags = var.tags
 }

@@ -46,9 +46,9 @@ resource "aws_kms_alias" "lambda_environment" {
 }
 
 resource "aws_sqs_queue" "lambda_dlq" {
-  name                      = "${var.function_name}-dlq"
-  sqs_managed_sse_enabled   = true
-  tags                      = var.tags
+  name                    = "${var.function_name}-dlq"
+  sqs_managed_sse_enabled = true
+  tags                    = var.tags
 }
 
 resource "aws_signer_signing_profile" "this" {
@@ -67,14 +67,14 @@ resource "aws_lambda_code_signing_config" "this" {
 }
 
 resource "aws_lambda_function" "this" {
-  function_name                  = var.function_name
-  role                           = var.role_arn
-  handler                        = var.handler
-  runtime                        = var.runtime
-  filename                       = var.source_code_path
-  memory_size                    = var.memory_size
-  timeout                        = var.timeout
-  publish                        = true
+  function_name = var.function_name
+  role          = var.role_arn
+  handler       = var.handler
+  runtime       = var.runtime
+  filename      = var.source_code_path
+  memory_size   = var.memory_size
+  timeout       = var.timeout
+  publish       = true
   # KMS encryption temporarily disabled for initial deployment
   # kms_key_arn                    = aws_kms_key.lambda_environment.arn
   reserved_concurrent_executions = 1
