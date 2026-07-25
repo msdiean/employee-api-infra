@@ -98,5 +98,5 @@ resource "aws_lambda_function" "this" {
 
   tags = var.tags
 
-  source_code_hash = filebase64sha256(var.source_code_path)
+  source_code_hash = fileexists(var.source_code_path) ? filebase64sha256(var.source_code_path) : base64sha256("placeholder")
 }
