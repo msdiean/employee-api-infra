@@ -71,7 +71,7 @@ resource "aws_lambda_function" "this" {
   role          = var.role_arn
   handler       = var.handler
   runtime       = var.runtime
-  filename      = var.source_code_path
+  filename      = abspath(var.source_code_path)
   memory_size   = var.memory_size
   timeout       = var.timeout
   publish       = true
@@ -99,5 +99,5 @@ resource "aws_lambda_function" "this" {
 
   tags = var.tags
 
-  source_code_hash = fileexists(var.source_code_path) ? filebase64sha256(var.source_code_path) : base64sha256("placeholder")
+  source_code_hash = filebase64sha256(abspath(var.source_code_path))
 }

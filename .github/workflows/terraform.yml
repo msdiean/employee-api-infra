@@ -63,7 +63,7 @@ jobs:
 
       - name: Build Lambda Package
         run: |
-          # Create a minimal Lambda deployment package using Python
+          # Create a minimal Lambda deployment package with deterministic timestamps
           python3 << 'EOF'
           import zipfile
           import os
@@ -74,16 +74,22 @@ jobs:
           with open('lambda_build/index.js', 'w') as f:
               f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
           
-          # Create zip file
+          # Create zip file with fixed date_time for reproducibility
+          # This ensures the same hash across multiple runs
           with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-              zf.write('lambda_build/index.js', 'index.js')
+              zinfo = zipfile.ZipInfo('index.js', date_time=(2024, 1, 1, 0, 0, 0))
+              with open('lambda_build/index.js', 'rb') as f:
+                  zf.writestr(zinfo, f.read())
           
           import shutil
           shutil.rmtree('lambda_build')
           
-          # Show file info
+          # Verify file
           size = os.path.getsize('employee-api.zip')
-          print(f'Created employee-api.zip ({size} bytes)')
+          import hashlib
+          with open('employee-api.zip', 'rb') as f:
+              sha256 = hashlib.sha256(f.read()).hexdigest()
+          print(f'Created employee-api.zip ({size} bytes, SHA256: {sha256[:16]}...)')
           EOF
 
       - name: Setup Terraform
@@ -129,6 +135,12 @@ jobs:
           name: tfplan
           path: ${{ env.TF_WORKING_DIR }}/tfplan
 
+      - name: Upload Lambda Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-package
+          path: ${{ env.TF_WORKING_DIR }}/employee-api.zip
+
   terraform-apply:
     name: Terraform Apply
 
@@ -166,31 +178,6 @@ jobs:
       - name: Verify AWS Authentication
         run: aws sts get-caller-identity
 
-      - name: Build Lambda Package
-        run: |
-          # Create a minimal Lambda deployment package using Python
-          python3 << 'EOF'
-          import zipfile
-          import os
-          
-          os.makedirs('lambda_build', exist_ok=True)
-          
-          # Create index.js
-          with open('lambda_build/index.js', 'w') as f:
-              f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
-          
-          # Create zip file
-          with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-              zf.write('lambda_build/index.js', 'index.js')
-          
-          import shutil
-          shutil.rmtree('lambda_build')
-          
-          # Show file info
-          size = os.path.getsize('employee-api.zip')
-          print(f'Created employee-api.zip ({size} bytes)')
-          EOF
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -200,6 +187,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tfplan
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Download Lambda Package
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-package
           path: ${{ env.TF_WORKING_DIR }}
 
       - name: Terraform Init
