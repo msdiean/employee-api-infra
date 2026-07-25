@@ -71,7 +71,7 @@ resource "aws_lambda_function" "this" {
   role                           = var.role_arn
   handler                        = var.handler
   runtime                        = var.runtime
-  filename                       = var.source_code_path
+  filename                       = fileexists(var.source_code_path) ? var.source_code_path : null
   memory_size                    = var.memory_size
   timeout                        = var.timeout
   publish                        = true
