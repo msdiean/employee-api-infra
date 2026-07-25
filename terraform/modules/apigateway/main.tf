@@ -181,6 +181,24 @@ resource "aws_cloudwatch_log_group" "access_logs" {
   tags              = var.tags
 }
 
+resource "aws_cloudwatch_log_resource_policy" "wafv2_logging" {
+  policy_name = "${replace(var.api_name, "-", "")}-wafv2-logging-policy"
+
+  policy_text = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "wafv2.amazonaws.com"
+        }
+        Action   = "logs:PutLogEvents"
+        Resource = "${aws_cloudwatch_log_group.access_logs.arn}:*"
+      }
+    ]
+  })
+}
+
 resource "aws_api_gateway_deployment" "this" {
   rest_api_id = aws_api_gateway_rest_api.this.id
 
@@ -335,6 +353,11 @@ resource "aws_wafv2_web_acl" "this" {
 resource "aws_wafv2_web_acl_logging_configuration" "this" {
   resource_arn            = aws_wafv2_web_acl.this.arn
   log_destination_configs = [aws_cloudwatch_log_group.access_logs.arn]
+
+  depends_on = [
+    aws_cloudwatch_log_group.access_logs,
+    aws_cloudwatch_log_resource_policy.wafv2_logging
+  ]
 
   logging_filter {
     default_behavior = "KEEP"
