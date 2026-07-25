@@ -31,7 +31,7 @@ resource "aws_api_gateway_method" "post_employees" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employees.id
   http_method          = "POST"
-  authorization        = "AWS_IAM"
+  authorization        = "NONE"
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
@@ -39,7 +39,7 @@ resource "aws_api_gateway_method" "get_employees" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employees.id
   http_method          = "GET"
-  authorization        = "AWS_IAM"
+  authorization        = "NONE"
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
@@ -47,7 +47,7 @@ resource "aws_api_gateway_method" "get_employee" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employee_item.id
   http_method          = "GET"
-  authorization        = "AWS_IAM"
+  authorization        = "NONE"
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
@@ -55,7 +55,7 @@ resource "aws_api_gateway_method" "put_employee" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employee_item.id
   http_method          = "PUT"
-  authorization        = "AWS_IAM"
+  authorization        = "NONE"
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
@@ -63,7 +63,7 @@ resource "aws_api_gateway_method" "delete_employee" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employee_item.id
   http_method          = "DELETE"
-  authorization        = "AWS_IAM"
+  authorization        = "NONE"
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
