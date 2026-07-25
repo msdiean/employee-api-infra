@@ -132,7 +132,40 @@ resource "aws_kms_key" "access_logs_encryption" {
   description             = "KMS key for API Gateway access logs"
   enable_key_rotation     = true
   deletion_window_in_days = 10
+  policy                  = data.aws_iam_policy_document.kms_policy.json
   tags                    = var.tags
+}
+
+data "aws_iam_policy_document" "kms_policy" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "Allow CloudWatch Logs to use the key"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_kms_alias" "access_logs_encryption" {
@@ -295,6 +328,27 @@ resource "aws_wafv2_web_acl" "this" {
     cloudwatch_metrics_enabled = true
     metric_name                = "${replace(var.api_name, "-", "")}-waf"
     sampled_requests_enabled   = true
+  }
+}
+
+resource "aws_wafv2_web_acl_logging_configuration" "this" {
+  resource_arn            = aws_wafv2_web_acl.this.arn
+  log_destination_configs = [aws_cloudwatch_log_group.access_logs.arn]
+
+  logging_filter {
+    default_behavior = "KEEP"
+
+    filter {
+      behavior = "KEEP"
+
+      condition {
+        action_condition {
+          action = "BLOCK"
+        }
+      }
+
+      requirement = "MEETS_ANY"
+    }
   }
 }
 

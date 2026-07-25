@@ -2,8 +2,43 @@ resource "aws_kms_key" "table_encryption" {
   description             = "KMS key for DynamoDB table encryption"
   enable_key_rotation     = true
   deletion_window_in_days = 10
+  policy                  = data.aws_iam_policy_document.kms_policy.json
   tags                    = var.tags
 }
+
+data "aws_iam_policy_document" "kms_policy" {
+  statement {
+    sid    = "Enable IAM User Permissions"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "Allow DynamoDB to use the key"
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["dynamodb.amazonaws.com"]
+    }
+
+    actions = [
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+  }
+}
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_kms_alias" "table_encryption" {
   name          = "alias/${replace(replace(replace(var.table_name, "/", ""), "-", ""), "_", "")}-table"
