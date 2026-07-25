@@ -23,4 +23,4 @@ variable "tags" {
     Environment = "dev"
     Project     = "employee-api"
   }
-}  
+}
