@@ -2,11 +2,10 @@ terraform {
   required_version = ">= 1.12"
 
   backend "s3" {
-    bucket         = "coz-serverless"
-    key            = "employee-api-infra/dev/terraform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "terraform-state-lock"
-    encrypt        = true
+    bucket  = "coz-serverless"
+    key     = "employee-api-infra/dev/terraform.tfstate"
+    region  = "us-east-1"
+    encrypt = true
   }
 
   required_providers {

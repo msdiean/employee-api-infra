@@ -42,7 +42,7 @@ module "lambda" {
   role_arn         = module.iam.role_arn
   environment_variables = {
     TABLE_NAME = module.dynamodb.table_name
-    AWS_REGION = var.aws_region
+    APP_REGION = var.aws_region
   }
   tags = local.common_tags
 }
