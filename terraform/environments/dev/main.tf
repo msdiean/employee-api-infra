@@ -18,7 +18,7 @@ module "dynamodb" {
 module "cloudwatch" {
   source            = "../../modules/cloudwatch"
   log_group_name    = local.log_group_name
-  retention_in_days = 14
+  retention_in_days = 3653
   tags              = local.common_tags
 }
 

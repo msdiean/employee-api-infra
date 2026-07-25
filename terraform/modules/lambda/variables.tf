@@ -41,6 +41,18 @@ variable "environment_variables" {
   default     = {}
 }
 
+variable "subnet_ids" {
+  description = "Subnet IDs for the Lambda VPC configuration."
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_ids" {
+  description = "Security group IDs for the Lambda VPC configuration."
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Tags to apply to Lambda resources."
   type        = map(string)
