@@ -208,7 +208,7 @@ resource "aws_api_gateway_method_settings" "this" {
   settings {
     metrics_enabled        = true
     logging_level          = "INFO"
-    data_trace_enabled     = true
+    data_trace_enabled     = false
     throttling_burst_limit = 5000
     throttling_rate_limit  = 10000
     caching_enabled        = true
@@ -225,10 +225,76 @@ resource "aws_wafv2_web_acl" "this" {
     allow {}
   }
 
+  rule {
+    name     = "RateLimitRule"
+    priority = 0
+
+    statement {
+      rate_based_statement {
+        limit              = 2000
+        aggregate_key_type = "IP"
+      }
+    }
+
+    action {
+      block {}
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${replace(var.api_name, "-", "")}-rate-limit"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 1
+
+    override_action {
+      none {}
+    }
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesCommonRuleSet"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${replace(var.api_name, "-", "")}-common-rules"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "Log4jProtectionRule"
+    priority = 2
+
+    statement {
+      managed_rule_group_statement {
+        vendor_name = "AWS"
+        name        = "AWSManagedRulesKnownBadInputsRuleSet"
+      }
+    }
+
+    override_action {
+      none {}
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "${replace(var.api_name, "-", "")}-log4j-protection"
+      sampled_requests_enabled   = true
+    }
+  }
+
   visibility_config {
-    cloudwatch_metrics_enabled = false
+    cloudwatch_metrics_enabled = true
     metric_name                = "${replace(var.api_name, "-", "")}-waf"
-    sampled_requests_enabled   = false
+    sampled_requests_enabled   = true
   }
 }
 
