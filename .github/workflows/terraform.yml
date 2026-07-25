@@ -63,14 +63,28 @@ jobs:
 
       - name: Build Lambda Package
         run: |
-          # Create a minimal Lambda deployment package
-          mkdir -p lambda_build
-          echo "exports.handler = async (event) => { return { statusCode: 200, body: 'OK' }; };" > lambda_build/index.js
-          cd lambda_build
-          zip -r ../employee-api.zip . 
-          cd ..
-          rm -rf lambda_build
-          ls -lh employee-api.zip
+          # Create a minimal Lambda deployment package using Python
+          python3 << 'EOF'
+          import zipfile
+          import os
+          
+          os.makedirs('lambda_build', exist_ok=True)
+          
+          # Create index.js
+          with open('lambda_build/index.js', 'w') as f:
+              f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
+          
+          # Create zip file
+          with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+              zf.write('lambda_build/index.js', 'index.js')
+          
+          import shutil
+          shutil.rmtree('lambda_build')
+          
+          # Show file info
+          size = os.path.getsize('employee-api.zip')
+          print(f'Created employee-api.zip ({size} bytes)')
+          EOF
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -154,14 +168,28 @@ jobs:
 
       - name: Build Lambda Package
         run: |
-          # Create a minimal Lambda deployment package
-          mkdir -p lambda_build
-          echo "exports.handler = async (event) => { return { statusCode: 200, body: 'OK' }; };" > lambda_build/index.js
-          cd lambda_build
-          zip -r ../employee-api.zip . 
-          cd ..
-          rm -rf lambda_build
-          ls -lh employee-api.zip
+          # Create a minimal Lambda deployment package using Python
+          python3 << 'EOF'
+          import zipfile
+          import os
+          
+          os.makedirs('lambda_build', exist_ok=True)
+          
+          # Create index.js
+          with open('lambda_build/index.js', 'w') as f:
+              f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
+          
+          # Create zip file
+          with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+              zf.write('lambda_build/index.js', 'index.js')
+          
+          import shutil
+          shutil.rmtree('lambda_build')
+          
+          # Show file info
+          size = os.path.getsize('employee-api.zip')
+          print(f'Created employee-api.zip ({size} bytes)')
+          EOF
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
