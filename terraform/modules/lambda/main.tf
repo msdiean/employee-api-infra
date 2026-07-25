@@ -53,7 +53,7 @@ resource "aws_sqs_queue" "lambda_dlq" {
 
 resource "aws_signer_signing_profile" "this" {
   platform_id = "AWSLambda-SHA384-ECDSA"
-  name        = "${var.function_name}-signing-profile"
+  name        = replace("${var.function_name}-signing-profile", "-", "_")
 }
 
 resource "aws_lambda_code_signing_config" "this" {
