@@ -27,10 +27,6 @@ resource "aws_api_gateway_request_validator" "this" {
   validate_request_body       = true
 }
 
-resource "aws_api_gateway_client_certificate" "this" {
-  description = "Client certificate for API Gateway stage"
-}
-
 resource "aws_api_gateway_method" "post_employees" {
   rest_api_id          = aws_api_gateway_rest_api.this.id
   resource_id          = aws_api_gateway_resource.employees.id
@@ -128,76 +124,7 @@ resource "aws_lambda_permission" "api_gateway" {
   source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.this.id}/*/*/*"
 }
 
-resource "aws_kms_key" "access_logs_encryption" {
-  description             = "KMS key for API Gateway access logs"
-  enable_key_rotation     = true
-  deletion_window_in_days = 10
-  policy                  = data.aws_iam_policy_document.kms_policy.json
-  tags                    = var.tags
-}
-
-data "aws_iam_policy_document" "kms_policy" {
-  statement {
-    sid    = "Enable IAM User Permissions"
-    effect = "Allow"
-
-    principals {
-      type        = "AWS"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
-    }
-
-    actions   = ["kms:*"]
-    resources = ["*"]
-  }
-
-  statement {
-    sid    = "Allow CloudWatch Logs to use the key"
-    effect = "Allow"
-
-    principals {
-      type        = "Service"
-      identifiers = ["logs.amazonaws.com"]
-    }
-
-    actions = [
-      "kms:Decrypt",
-      "kms:GenerateDataKey",
-      "kms:DescribeKey"
-    ]
-    resources = ["*"]
-  }
-}
-
-resource "aws_kms_alias" "access_logs_encryption" {
-  name          = "alias/${replace(replace(replace(var.api_name, "/", ""), "-", ""), "_", "")}-access-logs"
-  target_key_id = aws_kms_key.access_logs_encryption.key_id
-}
-
-resource "aws_cloudwatch_log_group" "access_logs" {
-  name              = "/aws/apigateway/${var.api_name}"
-  retention_in_days = 3653
-  # KMS encryption temporarily disabled for initial deployment
-  # kms_key_id        = aws_kms_key.access_logs_encryption.arn
-  tags = var.tags
-}
-
-resource "aws_cloudwatch_log_resource_policy" "wafv2_logging" {
-  policy_name = "${replace(var.api_name, "-", "")}-wafv2-logging-policy"
-
-  policy_document = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "wafv2.amazonaws.com"
-        }
-        Action   = "logs:PutLogEvents"
-        Resource = "${aws_cloudwatch_log_group.access_logs.arn}:*"
-      }
-    ]
-  })
-}
+data "aws_caller_identity" "current" {}
 
 resource "aws_api_gateway_deployment" "this" {
   rest_api_id = aws_api_gateway_rest_api.this.id
@@ -240,16 +167,7 @@ resource "aws_api_gateway_stage" "this" {
   description   = "${var.stage_name} deployment stage"
   tags          = var.tags
 
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.access_logs.arn
-    format          = "$context.requestId"
-  }
-
-  xray_tracing_enabled  = true
-  cache_cluster_enabled = true
-  cache_cluster_size    = "0.5"
-  client_certificate_id = aws_api_gateway_client_certificate.this.id
-
+  xray_tracing_enabled = true
 }
 
 resource "aws_api_gateway_method_settings" "this" {
@@ -263,9 +181,6 @@ resource "aws_api_gateway_method_settings" "this" {
     data_trace_enabled     = false
     throttling_burst_limit = 5000
     throttling_rate_limit  = 10000
-    caching_enabled        = true
-    cache_ttl_in_seconds   = 300
-    cache_data_encrypted   = true
   }
 }
 
@@ -350,35 +265,8 @@ resource "aws_wafv2_web_acl" "this" {
   }
 }
 
-resource "aws_wafv2_web_acl_logging_configuration" "this" {
-  resource_arn            = aws_wafv2_web_acl.this.arn
-  log_destination_configs = ["${aws_cloudwatch_log_group.access_logs.arn}:*"]
-
-  depends_on = [
-    aws_cloudwatch_log_group.access_logs,
-    aws_cloudwatch_log_resource_policy.wafv2_logging
-  ]
-
-  logging_filter {
-    default_behavior = "KEEP"
-
-    filter {
-      behavior = "KEEP"
-
-      condition {
-        action_condition {
-          action = "BLOCK"
-        }
-      }
-
-      requirement = "MEETS_ANY"
-    }
-  }
-}
 
 resource "aws_wafv2_web_acl_association" "this" {
   resource_arn = aws_api_gateway_stage.this.arn
   web_acl_arn  = aws_wafv2_web_acl.this.arn
 }
-
-data "aws_caller_identity" "current" {}

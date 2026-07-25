@@ -53,6 +53,15 @@ data "aws_iam_policy_document" "lambda_policy" {
     ]
     resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:${var.log_group_name}:*"]
   }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "xray:PutTraceSegments",
+      "xray:PutTelemetryRecords"
+    ]
+    resources = ["*"]
+  }
 }
 
 data "aws_caller_identity" "current" {}
