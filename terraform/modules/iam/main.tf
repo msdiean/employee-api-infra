@@ -57,6 +57,14 @@ data "aws_iam_policy_document" "lambda_policy" {
   statement {
     effect = "Allow"
     actions = [
+      "sqs:SendMessage"
+    ]
+    resources = ["arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:*"]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
       "xray:PutTraceSegments",
       "xray:PutTelemetryRecords"
     ]
