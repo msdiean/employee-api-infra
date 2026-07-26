@@ -42,9 +42,8 @@ jobs:
     steps:
       - name: Clean Previous Checkov Output
         run: |
-          if [ -d "checkov-results.sarif" ]; then
-            sudo rm -rf checkov-results.sarif || true
-          fi
+          sudo chown -R $(id -u):$(id -g) ${{ github.workspace }} || true
+          sudo rm -rf ${{ github.workspace }}/checkov-results.sarif || true
         working-directory: ${{ github.workspace }}
         continue-on-error: true
 
@@ -118,9 +117,10 @@ jobs:
       - name: Fix Checkov Output Permissions
         if: always()
         run: |
-          if [ -d "checkov-results.sarif" ]; then
-            sudo chmod -R 755 checkov-results.sarif || true
-          fi
+          sudo chown -R $(id -u):$(id -g) ${{ github.workspace }} || true
+          sudo rm -rf ${{ github.workspace }}/checkov-results.sarif || true
+        working-directory: ${{ github.workspace }}
+        continue-on-error: true
 
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan -no-color
