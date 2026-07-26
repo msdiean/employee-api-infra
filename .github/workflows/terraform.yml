@@ -24,15 +24,15 @@ env:
   AWS_ROLE_TO_ASSUME: arn:aws:iam::755395261332:role/github-actions-role
 
 jobs:
-  terraform-plan:
-    name: Terraform Plan
+  validate-and-lint:
+    name: Stage 1 - Terraform Lint & Validate
     runs-on: [self-hosted, terraform]
 
     permissions:
       id-token: write
       contents: read
 
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     defaults:
       run:
@@ -40,7 +40,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
-      - name: Clean Previous Checkov Output
+      - name: Clean Previous Workspace Permissions
         run: |
           sudo chown -R $(id -u):$(id -g) ${{ github.workspace }} || true
           sudo rm -rf ${{ github.workspace }}/checkov-results.sarif || true
@@ -57,40 +57,6 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActionsSession
 
-      - name: Verify AWS Authentication
-        run: aws sts get-caller-identity
-
-      - name: Build Lambda Package
-        run: |
-          # Create a minimal Lambda deployment package with deterministic timestamps
-          python3 << 'EOF'
-          import zipfile
-          import os
-          
-          os.makedirs('lambda_build', exist_ok=True)
-          
-          # Create index.js
-          with open('lambda_build/index.js', 'w') as f:
-              f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
-          
-          # Create zip file with fixed date_time for reproducibility
-          # This ensures the same hash across multiple runs
-          with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
-              zinfo = zipfile.ZipInfo('index.js', date_time=(2024, 1, 1, 0, 0, 0))
-              with open('lambda_build/index.js', 'rb') as f:
-                  zf.writestr(zinfo, f.read())
-          
-          import shutil
-          shutil.rmtree('lambda_build')
-          
-          # Verify file
-          size = os.path.getsize('employee-api.zip')
-          import hashlib
-          with open('employee-api.zip', 'rb') as f:
-              sha256 = hashlib.sha256(f.read()).hexdigest()
-          print(f'Created employee-api.zip ({size} bytes, SHA256: {sha256[:16]}...)')
-          EOF
-
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -104,6 +70,31 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+
+  security-scan:
+    name: Stage 2 - Checkov Security Scan
+    needs: validate-and-lint
+    runs-on: [self-hosted, terraform]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
 
       - name: Checkov Security Scan
         uses: bridgecrewio/checkov-action@v12
@@ -121,6 +112,57 @@ jobs:
           sudo rm -rf ${{ github.workspace }}/checkov-results.sarif || true
         working-directory: ${{ github.workspace }}
         continue-on-error: true
+
+  terraform-plan:
+    name: Stage 3 - Terraform Plan
+    needs: security-scan
+    runs-on: [self-hosted, terraform]
+
+    permissions:
+      id-token: write
+      contents: read
+
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.TF_WORKING_DIR }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: GitHubActionsSession
+
+      - name: Build Lambda Package
+        run: |
+          python3 << 'EOF'
+          import zipfile
+          import os
+          os.makedirs('lambda_build', exist_ok=True)
+          with open('lambda_build/index.js', 'w') as f:
+              f.write('exports.handler = async (event) => { return { statusCode: 200, body: "OK" }; };')
+          with zipfile.ZipFile('employee-api.zip', 'w', zipfile.ZIP_DEFLATED) as zf:
+              zinfo = zipfile.ZipInfo('index.js', date_time=(2024, 1, 1, 0, 0, 0))
+              with open('lambda_build/index.js', 'rb') as f:
+                  zf.writestr(zinfo, f.read())
+          import shutil
+          shutil.rmtree('lambda_build')
+          EOF
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform Init
+        run: terraform init -input=false
 
       - name: Terraform Plan
         run: terraform plan -input=false -out=tfplan -no-color
@@ -141,12 +183,9 @@ jobs:
           path: ${{ env.TF_WORKING_DIR }}/employee-api.zip
 
   terraform-apply:
-    name: Terraform Apply
-
+    name: Stage 4 - Terraform Apply (Manual Approval Required)
     needs: terraform-plan
-
     if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && github.event_name == 'push')
-
     runs-on: [self-hosted, terraform]
 
     permissions:
@@ -155,6 +194,7 @@ jobs:
 
     timeout-minutes: 60
 
+    # Environment "production" enables GitHub Environment Approval Gate
     environment:
       name: production
 
@@ -173,9 +213,6 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: GitHubActionsSession
-
-      - name: Verify AWS Authentication
-        run: aws sts get-caller-identity
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -197,5 +234,5 @@ jobs:
       - name: Terraform Init
         run: terraform init -input=false
 
-      - name: Terraform Apply
+      - name: Terraform Apply Execution
         run: terraform apply -input=false tfplan
