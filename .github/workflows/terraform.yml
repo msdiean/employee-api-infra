@@ -182,6 +182,15 @@ jobs:
           name: lambda-package
           path: ${{ env.TF_WORKING_DIR }}/employee-api.zip
 
+      - name: Upload tfplan to Central S3 Audit Bucket
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BUCKET_NAME="employee-api-central-audit-dev-${ACCOUNT_ID}"
+          if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+            echo "Uploading tfplan to s3://${BUCKET_NAME}/ci-security-scans/tfplan-${{ github.sha }}.plan..."
+            aws s3 cp tfplan "s3://${BUCKET_NAME}/ci-security-scans/tfplan-${{ github.sha }}.plan"
+          fi
+
   terraform-apply:
     name: Stage 4 - Terraform Apply (Manual Approval Required)
     needs: terraform-plan

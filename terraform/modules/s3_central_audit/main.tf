@@ -38,9 +38,49 @@ resource "aws_s3_bucket_policy" "central_audit" {
         Principal = "*"
         Action    = "s3:GetObject"
         Resource  = "${aws_s3_bucket.central_audit.arn}/*"
+      },
+      {
+        Sid    = "AWSCloudTrailAclCheck"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:GetBucketAcl"
+        Resource = aws_s3_bucket.central_audit.arn
+      },
+      {
+        Sid    = "AWSCloudTrailWrite"
+        Effect = "Allow"
+        Principal = {
+          Service = "cloudtrail.amazonaws.com"
+        }
+        Action   = "s3:PutObject"
+        Resource = "${aws_s3_bucket.central_audit.arn}/cloudtrail-logs/*"
+        Condition = {
+          StringEquals = {
+            "s3:x-amz-acl" = "bucket-owner-full-control"
+          }
+        }
       }
     ]
   })
+}
+
+resource "aws_s3_object" "folder_cloudtrail_logs" {
+  bucket = aws_s3_bucket.central_audit.id
+  key    = "cloudtrail-logs/"
+}
+
+resource "aws_cloudtrail" "main_audit_trail" {
+  name                          = "employee-api-cloudtrail"
+  s3_bucket_name                = aws_s3_bucket.central_audit.id
+  s3_key_prefix                 = "cloudtrail-logs"
+  include_global_service_events = true
+  is_multi_region_trail        = true
+  enable_log_file_validation    = true
+
+  depends_on = [aws_s3_bucket_policy.central_audit]
+  tags       = var.tags
 }
 
 # Subfolder structure inside single centralized bucket
