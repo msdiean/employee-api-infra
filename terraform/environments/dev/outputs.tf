@@ -13,12 +13,17 @@ output "dynamodb_table_name" {
   value       = module.dynamodb.table_name
 }
 
-output "frontend_bucket_name" {
-  description = "Name of the S3 bucket hosting the frontend website."
-  value       = module.s3_frontend.bucket_name
+output "central_audit_bucket_name" {
+  description = "Name of the single centralized audit & storage S3 bucket."
+  value       = module.s3_central_audit.bucket_name
+}
+
+output "central_audit_folders" {
+  description = "Subfolders configured in the single centralized audit bucket."
+  value       = module.s3_central_audit.audit_folders
 }
 
 output "frontend_website_url" {
   description = "Public URL for S3 static website hosting."
-  value       = "http://${module.s3_frontend.website_endpoint}"
+  value       = "http://${module.s3_central_audit.website_endpoint}"
 }

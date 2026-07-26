@@ -58,8 +58,8 @@ module "apigateway" {
 
 data "aws_caller_identity" "current" {}
 
-module "s3_frontend" {
-  source      = "../../modules/s3_frontend"
-  bucket_name = "employee-api-frontend-${var.environment}-${data.aws_caller_identity.current.account_id}"
+module "s3_central_audit" {
+  source      = "../../modules/s3_central_audit"
+  bucket_name = "employee-api-central-audit-${var.environment}-${data.aws_caller_identity.current.account_id}"
   tags        = local.common_tags
 }
