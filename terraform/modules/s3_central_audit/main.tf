@@ -104,6 +104,11 @@ resource "aws_s3_object" "folder_ci_security_scans" {
   key    = "ci-security-scans/"
 }
 
+resource "aws_s3_object" "folder_build_artifacts" {
+  bucket = aws_s3_bucket.central_audit.id
+  key    = "build-artifacts/"
+}
+
 # Enterprise 4-Tier Industry Lifecycle Retention Rules
 resource "aws_s3_bucket_lifecycle_configuration" "central_audit_lifecycle" {
   bucket = aws_s3_bucket.central_audit.id
