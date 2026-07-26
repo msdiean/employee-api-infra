@@ -107,14 +107,13 @@ jobs:
         run: terraform validate
 
       - name: Checkov Security Scan
-        if: false
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: ${{ env.TF_WORKING_DIR }}
           framework: terraform
           output_format: sarif
           output_file_path: checkov-results.sarif
-          soft_fail: false
+          soft_fail: true
 
       - name: Fix Checkov Output Permissions
         if: always()
