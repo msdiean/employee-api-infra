@@ -67,6 +67,20 @@ resource "aws_api_gateway_method" "delete_employee" {
   request_validator_id = aws_api_gateway_request_validator.this.id
 }
 
+resource "aws_api_gateway_method" "options_employees" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.employees.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "options_employee_item" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.employee_item.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
 locals {
   lambda_uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${var.lambda_arn}/invocations"
 }
@@ -116,6 +130,24 @@ resource "aws_api_gateway_integration" "delete_employee" {
   uri                     = local.lambda_uri
 }
 
+resource "aws_api_gateway_integration" "options_employees" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.employees.id
+  http_method             = aws_api_gateway_method.options_employees.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.lambda_uri
+}
+
+resource "aws_api_gateway_integration" "options_employee_item" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.employee_item.id
+  http_method             = aws_api_gateway_method.options_employee_item.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = local.lambda_uri
+}
+
 resource "aws_lambda_permission" "api_gateway" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -138,11 +170,15 @@ resource "aws_api_gateway_deployment" "this" {
       aws_api_gateway_method.get_employee.id,
       aws_api_gateway_method.put_employee.id,
       aws_api_gateway_method.delete_employee.id,
+      aws_api_gateway_method.options_employees.id,
+      aws_api_gateway_method.options_employee_item.id,
       aws_api_gateway_integration.post_employees.id,
       aws_api_gateway_integration.get_employees.id,
       aws_api_gateway_integration.get_employee.id,
       aws_api_gateway_integration.put_employee.id,
       aws_api_gateway_integration.delete_employee.id,
+      aws_api_gateway_integration.options_employees.id,
+      aws_api_gateway_integration.options_employee_item.id,
     ]))
   }
 
@@ -152,6 +188,8 @@ resource "aws_api_gateway_deployment" "this" {
     aws_api_gateway_integration.get_employee,
     aws_api_gateway_integration.put_employee,
     aws_api_gateway_integration.delete_employee,
+    aws_api_gateway_integration.options_employees,
+    aws_api_gateway_integration.options_employee_item,
     aws_lambda_permission.api_gateway,
   ]
 
