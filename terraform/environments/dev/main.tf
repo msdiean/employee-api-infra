@@ -55,3 +55,11 @@ module "apigateway" {
   stage_name = var.environment
   tags       = local.common_tags
 }
+
+data "aws_caller_identity" "current" {}
+
+module "s3_frontend" {
+  source      = "../../modules/s3_frontend"
+  bucket_name = "employee-api-frontend-${var.environment}-${data.aws_caller_identity.current.account_id}"
+  tags        = local.common_tags
+}
