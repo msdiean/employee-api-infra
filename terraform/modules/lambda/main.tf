@@ -29,4 +29,11 @@ resource "aws_lambda_function" "this" {
   tags = var.tags
 
   source_code_hash = filebase64sha256(abspath(var.source_code_path))
+
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash
+    ]
+  }
 }
