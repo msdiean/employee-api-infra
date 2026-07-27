@@ -80,6 +80,16 @@ data "aws_iam_policy_document" "lambda_policy" {
     ]
     resources = ["*"]
   }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface"
+    ]
+    resources = ["*"]
+  }
 }
 
 data "aws_caller_identity" "current" {}

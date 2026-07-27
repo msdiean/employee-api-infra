@@ -31,15 +31,24 @@ module "iam" {
   tags               = local.common_tags
 }
 
+module "vpc" {
+  source     = "../../modules/vpc"
+  vpc_name   = "employee-api-vpc-${var.environment}"
+  aws_region = var.aws_region
+  tags       = local.common_tags
+}
+
 module "lambda" {
-  source           = "../../modules/lambda"
-  function_name    = local.lambda_name
-  runtime          = "nodejs22.x"
-  handler          = "src/index.handler"
-  memory_size      = 512
-  timeout          = 10
-  source_code_path = var.lambda_package_path
-  role_arn         = module.iam.role_arn
+  source             = "../../modules/lambda"
+  function_name      = local.lambda_name
+  runtime            = "nodejs22.x"
+  handler            = "src/index.handler"
+  memory_size        = 512
+  timeout            = 10
+  source_code_path   = var.lambda_package_path
+  role_arn           = module.iam.role_arn
+  subnet_ids         = module.vpc.private_subnet_ids
+  security_group_ids = [module.vpc.lambda_security_group_id]
   environment_variables = {
     TABLE_NAME = module.dynamodb.table_name
     APP_REGION = var.aws_region
