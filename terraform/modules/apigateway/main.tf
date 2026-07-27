@@ -149,12 +149,12 @@ resource "aws_api_gateway_integration" "options_employee_item" {
 }
 
 resource "aws_lambda_permission" "api_gateway" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = split(":", var.lambda_arn)[6]
-  qualifier     = length(split(":", var.lambda_arn)) > 7 ? split(":", var.lambda_arn)[7] : null
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.this.id}/*/*/*"
+  statement_id_prefix = "AllowAPIGatewayInvoke-"
+  action              = "lambda:InvokeFunction"
+  function_name       = split(":", var.lambda_arn)[6]
+  qualifier           = length(split(":", var.lambda_arn)) > 7 ? split(":", var.lambda_arn)[7] : null
+  principal           = "apigateway.amazonaws.com"
+  source_arn          = "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.this.id}/*/*/*"
 }
 
 data "aws_caller_identity" "current" {}
