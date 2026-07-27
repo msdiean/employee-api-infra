@@ -163,6 +163,7 @@ resource "aws_api_gateway_deployment" "this" {
 
   triggers = {
     redeployment = sha256(jsonencode([
+      local.lambda_uri,
       aws_api_gateway_resource.employees.id,
       aws_api_gateway_resource.employee_item.id,
       aws_api_gateway_method.post_employees.id,
