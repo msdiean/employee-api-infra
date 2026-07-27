@@ -45,3 +45,11 @@ resource "aws_lambda_function" "this" {
     ]
   }
 }
+
+resource "aws_lambda_alias" "live" {
+  name             = "live"
+  description      = "Live alias pointing to the latest published version"
+  function_name    = aws_lambda_function.this.function_name
+  function_version = aws_lambda_function.this.version
+}
+

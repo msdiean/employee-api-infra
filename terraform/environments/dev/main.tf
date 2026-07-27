@@ -59,7 +59,7 @@ module "lambda" {
 module "apigateway" {
   source     = "../../modules/apigateway"
   api_name   = local.api_name
-  lambda_arn = module.lambda.lambda_function_arn
+  lambda_arn = module.lambda.lambda_alias_arn
   aws_region = var.aws_region
   stage_name = var.environment
   tags       = local.common_tags
