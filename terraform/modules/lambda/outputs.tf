@@ -23,3 +23,14 @@ output "lambda_alias_invoke_arn" {
   value       = aws_lambda_alias.live.invoke_arn
 }
 
+output "codedeploy_app_name" {
+  description = "Name of the CodeDeploy application."
+  value       = aws_codedeploy_app.this.name
+}
+
+output "codedeploy_deployment_group_name" {
+  description = "Name of the CodeDeploy deployment group."
+  value       = aws_codedeploy_deployment_group.this.deployment_group_name
+}
+
+
