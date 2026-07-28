@@ -128,66 +128,15 @@ resource "aws_iam_role_policy" "rollback_lambda_policy" {
   })
 }
 
-# 3. Zip package for inline Node.js Auto-Rollback Lambda
-data "archive_file" "rollback_zip" {
-  type        = "zip"
-  output_path = "${path.module}/rollback_handler.zip"
-
-  source {
-    content  = <<EOF
-const { LambdaClient, ListVersionsByFunctionCommand, UpdateAliasCommand } = require("@aws-sdk/client-lambda");
-
-exports.handler = async (event) => {
-  console.log("Auto-Rollback Triggered by Alarm Event:", JSON.stringify(event));
-  const lambda = new LambdaClient({});
-  const functionName = process.env.TARGET_FUNCTION_NAME;
-  const aliasName = process.env.TARGET_ALIAS_NAME;
-
-  try {
-    const versionsRes = await lambda.send(new ListVersionsByFunctionCommand({ FunctionName: functionName }));
-    const versions = (versionsRes.Versions || [])
-      .map(v => parseInt(v.Version, 10))
-      .filter(v => !isNaN(v))
-      .sort((a, b) => b - a);
-
-    if (versions.length < 2) {
-      console.log("No previous version available to roll back to.");
-      return;
-    }
-
-    const previousVersion = String(versions[1]);
-    console.log("Rolling back alias '" + aliasName + "' on function '" + functionName + "' to Version: " + previousVersion);
-
-    await lambda.send(new UpdateAliasCommand({
-      FunctionName: functionName,
-      Name: aliasName,
-      FunctionVersion: previousVersion
-    }));
-
-    console.log("Auto-Rollback completed successfully.");
-  } catch (err) {
-    console.error("Auto-Rollback failed:", err);
-    throw err;
-  }
-};
-EOF
-    filename = "index.js"
-  }
-}
-
-# 4. Auto-Rollback Lambda Function
+# 3. Auto-Rollback Lambda Function
 resource "aws_lambda_function" "auto_rollback" {
   function_name    = "${var.function_name}-auto-rollback"
   role             = aws_iam_role.rollback_lambda.arn
   handler          = "index.handler"
   runtime          = "nodejs22.x"
-  filename         = data.archive_file.rollback_zip.output_path
-  source_code_hash = data.archive_file.rollback_zip.output_base64sha256
+  filename         = "${path.module}/rollback_handler.zip"
+  source_code_hash = filebase64sha256("${path.module}/rollback_handler.zip")
   timeout          = 30
-
-  depends_on = [
-    data.archive_file.rollback_zip
-  ]
 
   environment {
     variables = {
