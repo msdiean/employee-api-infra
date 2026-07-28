@@ -23,3 +23,14 @@ output "lambda_alias_invoke_arn" {
   value       = aws_lambda_alias.live.invoke_arn
 }
 
+output "auto_rollback_function_name" {
+  description = "Name of the Auto-Rollback handler Lambda function."
+  value       = aws_lambda_function.auto_rollback.function_name
+}
+
+output "cloudwatch_alarm_name" {
+  description = "Name of the CloudWatch error alarm."
+  value       = aws_cloudwatch_metric_alarm.lambda_errors.alarm_name
+}
+
+
