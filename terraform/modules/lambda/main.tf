@@ -185,6 +185,10 @@ resource "aws_lambda_function" "auto_rollback" {
   source_code_hash = data.archive_file.rollback_zip.output_base64sha256
   timeout          = 30
 
+  depends_on = [
+    data.archive_file.rollback_zip
+  ]
+
   environment {
     variables = {
       TARGET_FUNCTION_NAME = aws_lambda_function.this.function_name
