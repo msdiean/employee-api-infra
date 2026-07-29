@@ -105,3 +105,26 @@ module "s3_central_audit" {
   bucket_name = "employee-api-central-audit-${var.environment}-${data.aws_caller_identity.current.account_id}"
   tags        = local.common_tags
 }
+
+# Datadog CloudWatch Log Subscription Filter using Native Forwarder
+data "aws_lambda_function" "datadog_forwarder" {
+  count         = var.datadog_api_key != "" ? 1 : 0
+  function_name = "DatadogIntegration-ForwarderStack-1WU213-Forwarder-biL7dHg78CAD"
+}
+
+resource "aws_cloudwatch_log_subscription_filter" "datadog_log_filter" {
+  count           = var.datadog_api_key != "" ? 1 : 0
+  name            = "employee-api-${var.environment}-datadog-subscription"
+  log_group_name  = "/aws/lambda/${local.lambda_name}"
+  filter_pattern  = ""
+  destination_arn = data.aws_lambda_function.datadog_forwarder[0].arn
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch_datadog_forwarder" {
+  count         = var.datadog_api_key != "" ? 1 : 0
+  statement_id  = "AllowCloudWatchInvokeDatadogForwarder"
+  action        = "lambda:InvokeFunction"
+  function_name = data.aws_lambda_function.datadog_forwarder[0].function_name
+  principal     = "logs.${var.aws_region}.amazonaws.com"
+  source_arn    = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${local.lambda_name}:*"
+}

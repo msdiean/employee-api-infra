@@ -12,9 +12,7 @@ resource "aws_lambda_function" "this" {
   filename      = abspath(var.source_code_path)
   memory_size   = var.memory_size
   timeout       = var.timeout
-  layers = var.datadog_api_key_secret_arn != "" ? [
-    "arn:aws:lambda:ap-south-1:464270061747:layer:Datadog-Extension:63"
-  ] : []
+
 
   environment {
     variables = merge(
