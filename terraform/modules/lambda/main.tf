@@ -13,7 +13,7 @@ resource "aws_lambda_function" "this" {
   memory_size   = var.memory_size
   timeout       = var.timeout
   layers = var.datadog_api_key_secret_arn != "" ? [
-    "arn:aws:lambda:ap-south-1:464270061747:layer:Datadog-Extension:67"
+    "arn:aws:lambda:ap-south-1:464270061747:layer:Datadog-Extension:63"
   ] : []
 
   environment {
