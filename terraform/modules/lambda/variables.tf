@@ -58,3 +58,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "datadog_api_key_secret_arn" {
+  description = "AWS Secrets Manager ARN for Datadog API Key."
+  type        = string
+  default     = ""
+}

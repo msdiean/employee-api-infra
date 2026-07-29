@@ -24,3 +24,10 @@ variable "tags" {
     Project     = "employee-api"
   }
 }
+
+variable "datadog_api_key" {
+  description = "Datadog API Key for telemetry and trace collection."
+  type        = string
+  sensitive   = true
+  default     = ""
+}

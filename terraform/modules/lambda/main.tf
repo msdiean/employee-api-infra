@@ -12,10 +12,22 @@ resource "aws_lambda_function" "this" {
   filename      = abspath(var.source_code_path)
   memory_size   = var.memory_size
   timeout       = var.timeout
-  publish       = true
+  layers = var.datadog_api_key_secret_arn != "" ? [
+    "arn:aws:lambda:ap-south-1:464270061747:layer:Datadog-Extension:67"
+  ] : []
 
   environment {
-    variables = var.environment_variables
+    variables = merge(
+      var.environment_variables,
+      var.datadog_api_key_secret_arn != "" ? {
+        DD_API_KEY_SECRET_ARN = var.datadog_api_key_secret_arn
+        DD_SITE               = "datadoghq.com"
+        DD_ENV                = "dev"
+        DD_SERVICE            = var.function_name
+        DD_TRACE_ENABLED      = "true"
+        DD_LOGS_INJECTION     = "true"
+      } : {}
+    )
   }
 
   dead_letter_config {
